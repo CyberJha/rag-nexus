@@ -1,0 +1,24 @@
+NEXUS RESEARCH LAB: AUTONOMOUS RAG ARCHITECTURES & HYBRID RETRIEVAL SYSTEMS
+Document Version: 2.4.0
+Published: 2026
+
+1. INTRODUCTION & OVERVIEW
+Retrieval-Augmented Generation (RAG) is an architectural framework that enhances Large Language Models (LLMs) by retrieving relevant contextual knowledge from external document repositories prior to generating answers. Unlike static parametric memory, RAG provides dynamic grounding, reducing hallucinations and enabling real-time factual accuracy.
+
+2. TOKENIZATION AND SEMANTIC CHUNKING
+Documents are parsed into discrete textual units known as tokens. When processing large manuscripts, the document must be segmented into semantic chunks. 
+Standard fixed-length chunking often fractures logical sentences; therefore, recursive delimiter splitting (respecting paragraph boundaries and sentence punctuation) is preferred. Typical chunk sizes range from 250 to 500 subword tokens with a 10% to 20% overlap ratio to preserve contextual continuity across chunk transitions.
+
+3. DUAL EMBEDDINGS & VECTOR SPACE RETRIEVAL
+Each text chunk is mapped into a high-dimensional vector space. Retrieval utilizes Cosine Similarity metrics:
+Cosine Similarity = (A · B) / (||A|| * ||B||)
+This calculates the angular distance between the vectorized query and all chunk vectors in the database. A similarity score exceeding 0.6 indicates strong semantic alignment. Chunks scoring below the threshold are categorized as extraneous.
+
+4. LIVE SYSTEM TOOL CALLING & CUTOFF MITIGATION
+Standard commercial LLMs suffer from a rigid knowledge cutoff timestamp. For instance, when asked for the current date or real-time local time, models often report their training timestamp. To mitigate this defect, an autonomous system tool named 'get_current_date_time' must be registered in the model's function schema. When invoked, the tool polls the host machine's system clock and injects verified ISO-8601 timestamps into the prompt context.
+
+5. HYBRID QUERY ROUTING: INSIDE VS. OUTSIDE THE CORPUS
+In production systems, users frequently pose queries that do not pertain to the indexed document corpus. A robust RAG pipeline must detect low retrieval confidence and smoothly switch to general LLM reasoning. Rather than refusing to answer, the assistant responds using general knowledge while displaying a clear disclaimer.
+
+6. CITATION INTEGRATION & SOURCE ATTRIBUTION
+Academic and enterprise compliance demands transparent provenance. Responses derived from document context must cite explicit page numbers, line ranges, and chunk identifiers. For optimal user experience, citation cards should remain unobtrusive and collapsible, allowing users to verify source claims on demand without cluttering the primary conversational interface.
