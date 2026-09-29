@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     let toolContextPrompt = '';
 
     if (detectDateTimeIntent(query)) {
-      const toolResult = executeDateTimeTool();
+      const toolResult = executeDateTimeTool(undefined, query);
       toolExecution = {
         toolName: 'get_current_date_time',
         inputArgs: { query },
@@ -32,15 +32,24 @@ export async function POST(req: NextRequest) {
         executedAt: new Date().toLocaleTimeString(),
       };
 
+      const relativePrompt = toolResult.relativeQueryInfo
+        ? `\n=== VERIFIED REAL-TIME RELATIVE DATE CALCULATION ===
+Base Date (Today): ${toolResult.currentDate} (${toolResult.dayOfWeek})
+Requested Offset: ${toolResult.relativeQueryInfo.relativeDescription} (${toolResult.relativeQueryInfo.detectedOffsetDays > 0 ? '+' : ''}${toolResult.relativeQueryInfo.detectedOffsetDays} days)
+Calculated Target Date: ${toolResult.relativeQueryInfo.targetDate}
+Calculated Target Day of Week: ${toolResult.relativeQueryInfo.targetDayOfWeek}
+Instruction: When answering the user's relative date question, directly state this calculated target date and day of the week as the factual answer.`
+        : '';
+
       toolContextPrompt = `
 [REAL-TIME SYSTEM TOOL EXECUTION - 'get_current_date_time']:
 Status: VERIFIED_LIVE_CLOCK_OUTPUT
-Live System Date: ${toolResult.currentDate}
+Live System Date (Today): ${toolResult.currentDate}
 Live System Time: ${toolResult.currentTime}
 Day of Week: ${toolResult.dayOfWeek}
 Timezone: ${toolResult.timezone}
-ISO Timestamp: ${toolResult.isoTimestamp}
-Note: Your training cutoff date is outdated. You MUST use the live system tool output above to provide the exact, accurate current date and time to the user.
+ISO Timestamp: ${toolResult.isoTimestamp}${relativePrompt}
+Note: Your training cutoff date is outdated. You MUST use the live system tool output above to provide the exact, accurate current or calculated relative date and time to the user.
 `;
     }
 
@@ -215,7 +224,11 @@ IMPORTANT: If the user asks for the current date or time, reference the live sys
       // High-quality deterministic local synthesizer for emergency mode
       if (toolExecution) {
         const parsed = JSON.parse(toolExecution.output);
-        assistantResponse = `🕒 **Live System Time & Date (Real-time Tool)**:\n- **Current Date**: ${parsed.currentDate}\n- **Current Time**: ${parsed.currentTime} (${parsed.timezone})\n- **Day of the Week**: ${parsed.dayOfWeek}\n\n*(Verified using host machine clock tool to eliminate LLM training cutoff discrepancies.)*`;
+        if (parsed.relativeQueryInfo) {
+          assistantResponse = `📅 **Calculated Date (${parsed.relativeQueryInfo.relativeDescription})**:\n- **Target Date**: **${parsed.relativeQueryInfo.targetDate}**\n- **Day of the Week**: **${parsed.relativeQueryInfo.targetDayOfWeek}**\n\n*(Base Date: Today is ${parsed.currentDate}, ${parsed.dayOfWeek}. Calculated in real-time via system tool).*`;
+        } else {
+          assistantResponse = `🕒 **Live System Time & Date (Real-time Tool)**:\n- **Current Date**: ${parsed.currentDate}\n- **Current Time**: ${parsed.currentTime} (${parsed.timezone})\n- **Day of the Week**: ${parsed.dayOfWeek}\n\n*(Verified using host machine clock tool to eliminate LLM training cutoff discrepancies.)*`;
+        }
       } else if (contextChunks && contextChunks.length > 0) {
         assistantResponse = `### [Emergency Local Synthesis Mode]\n\nBased on the uploaded document excerpts:\n\n${contextChunks
           .map((c) => `- **From Page ${c.pageNumber} (Lines ${c.startLine}-${c.endLine})**: ${c.textSnippet.slice(0, 220)}...`)

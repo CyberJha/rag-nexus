@@ -5,7 +5,6 @@ import {
   FileText,
   Upload,
   Cpu,
-  Clock,
   Sparkles,
   ChevronDown,
   ChevronUp,
@@ -39,7 +38,6 @@ import {
 import { parsePdfFile, parseTextFile } from '@/lib/pdfParser';
 import { chunkDocumentPages, estimateTokenCount } from '@/lib/tokenization';
 import { VectorStore } from '@/lib/vectorStore';
-import { executeDateTimeTool } from '@/lib/tools/dateTimeTool';
 
 export default function NexusRagPage() {
   // Model Settings State
@@ -72,23 +70,11 @@ export default function NexusRagPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
-
-  // Live Clock for Header Display
-  const [liveClock, setLiveClock] = useState<string>('');
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize clock and load saved settings from localStorage
+  // Load saved settings from localStorage
   useEffect(() => {
-    const updateTime = () => {
-      const dt = executeDateTimeTool();
-      setLiveClock(`${dt.currentTime} (${dt.timezone})`);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-
-    // Load saved settings
     if (typeof window !== 'undefined') {
       const savedConfig = localStorage.getItem('nexus_rag_config');
       if (savedConfig) {
@@ -99,8 +85,6 @@ export default function NexusRagPage() {
         }
       }
     }
-
-    return () => clearInterval(interval);
   }, []);
 
   // Save settings when changed
@@ -307,17 +291,6 @@ export default function NexusRagPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {/* Live System Clock Badge (Teacher's requirement highlight) */}
-          <div
-            className="badge badge-amber"
-            title="Real-time host clock feed used by get_current_date_time tool"
-            style={{ cursor: 'pointer', padding: '6px 12px' }}
-            onClick={() => handleSendMessage("What is today's exact date and time?")}
-          >
-            <Clock size={14} />
-            <span>LIVE TOOL CLOCK: {liveClock || 'Syncing...'}</span>
-          </div>
-
           {/* Model Status Pill */}
           <div
             className={`badge ${
@@ -607,7 +580,8 @@ export default function NexusRagPage() {
             </div>
           )}
 
-          {/* RAG Search Hyperparameters */}
+          {/* RAG Search Hyperparameters (Hidden as requested) */}
+          {/*
           <div className="glass-card" style={{ padding: '16px' }}>
             <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Database size={15} color="var(--accent-purple-light)" />
@@ -647,6 +621,7 @@ export default function NexusRagPage() {
               </div>
             </div>
           </div>
+          */}
 
           {/* Quick Prompts Helper */}
           <div style={{ marginTop: 'auto' }}>
@@ -661,6 +636,14 @@ export default function NexusRagPage() {
               >
                 <Zap size={12} color="#F59E0B" />
                 <span>Test Live Date/Time Tool</span>
+              </button>
+              <button
+                className="btn-secondary"
+                style={{ textAlign: 'left', justifyContent: 'flex-start', fontSize: '0.74rem', padding: '6px 10px' }}
+                onClick={() => handleSendMessage("What will be the date two days later?")}
+              >
+                <Zap size={12} color="#C084FC" />
+                <span>Calculate Date: 2 Days Later</span>
               </button>
               <button
                 className="btn-secondary"
